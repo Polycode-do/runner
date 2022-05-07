@@ -1,17 +1,44 @@
-import { Run } from "./router";
+import { Language } from "./router";
+import * as k8s from "@kubernetes/client-node";
+import { Job } from "../../models/Job";
 
-export function runJavaScript() {
-  return { stderr: "js", stdout: "", testsCompleted: "" } as Run;
+const kc = new k8s.KubeConfig();
+kc.loadFromFile("kubeconfig");
+const client = kc.makeApiClient(k8s.BatchV1Api);
+
+export async function runJavaScript(code: string) {
+  const job = new Job(code, Language.JAVASCRIPT);
+  try {
+    await client.readNamespacedJob(job.metadata.name, "runner");
+
+    const patch = {
+      op: "replace",
+      path: "/spec/template/spec/containers[0]/env[0]",
+      value: {
+        name: "CODE",
+        value: code,
+      },
+    };
+
+    const options = {
+      headers: { "Content-type": "application/json" },
+    };
+    await client.patchNamespacedJob(
+      job.metadata.name,
+      "runner",
+      patch,
+      undefined,
+      undefined,
+      options
+    );
+  } catch (e) {
+    console.log(e);
+    await client.createNamespacedJob("runner", job);
+  }
 }
 
-export function runPython() {
-  return { stderr: "python", stdout: "", testsCompleted: "" } as Run;
-}
+export async function runPython(code: string) {}
 
-export function runRust() {
-  return { stderr: "rust", stdout: "", testsCompleted: "" } as Run;
-}
+export async function runRust(code: string) {}
 
-export function runJava() {
-  return { stderr: "java", stdout: "", testsCompleted: "" } as Run;
-}
+export async function runJava(code: string) {}

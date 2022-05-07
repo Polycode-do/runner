@@ -30,16 +30,16 @@ export const appRouter = trpc.router().mutation("run", {
     let run;
     switch (input.language) {
       case Language.JAVASCRIPT:
-        run = runJavaScript();
+        run = runJavaScript(input.code);
         break;
       case Language.RUST:
-        run = runRust();
+        run = runRust(input.code);
         break;
       case Language.PYTHON:
-        run = runPython();
+        run = runPython(input.code);
         break;
       case Language.JAVA:
-        run = runJava();
+        run = runJava(input.code);
         break;
       default:
         throw new Error("Unknown language");
