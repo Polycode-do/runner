@@ -1,6 +1,6 @@
 import * as trpc from "@trpc/server";
 import { z } from "zod";
-import { runJava, runJavaScript, runPython, runRust } from "./runner";
+import { runPython, runJavaScript, runJava, runRust } from "./runner";
 
 export type Run = {
   stderr: string;
@@ -30,16 +30,16 @@ export const appRouter = trpc.router().mutation("run", {
     let run;
     switch (input.language) {
       case Language.JAVASCRIPT:
-        run = runJavaScript(input.code);
+        run = await runJavaScript(input.code);
         break;
       case Language.RUST:
-        run = runRust(input.code);
+        run = await runRust(input.code);
         break;
       case Language.PYTHON:
-        run = runPython(input.code);
+        run = await runPython(input.code);
         break;
       case Language.JAVA:
-        run = runJava(input.code);
+        run = await runJava(input.code);
         break;
       default:
         throw new Error("Unknown language");

@@ -1,44 +1,87 @@
-import { Language } from "./router";
-import * as k8s from "@kubernetes/client-node";
-import { Job } from "../../models/Job";
+import * as Docker from "dockerode";
+import { Writable } from "stream";
 
-const kc = new k8s.KubeConfig();
-kc.loadFromFile("kubeconfig");
-const client = kc.makeApiClient(k8s.BatchV1Api);
+const docker = new Docker();
 
-export async function runJavaScript(code: string) {
-  const job = new Job(code, Language.JAVASCRIPT);
-  try {
-    await client.readNamespacedJob(job.metadata.name, "runner");
+class SimpleStream extends Writable {
+  private data = "";
 
-    const patch = {
-      op: "replace",
-      path: "/spec/template/spec/containers[0]/env[0]",
-      value: {
-        name: "CODE",
-        value: code,
-      },
-    };
+  public getData() {
+    return this.data;
+  }
 
-    const options = {
-      headers: { "Content-type": "application/json" },
-    };
-    await client.patchNamespacedJob(
-      job.metadata.name,
-      "runner",
-      patch,
-      undefined,
-      undefined,
-      options
-    );
-  } catch (e) {
-    console.log(e);
-    await client.createNamespacedJob("runner", job);
+  public write(chunk: any) {
+    this.data += chunk.toString();
+    return true;
   }
 }
 
-export async function runPython(code: string) {}
+export async function runJavaScript(code: string) {
+  const stdout = new SimpleStream();
 
-export async function runRust(code: string) {}
+  await docker.run(
+    "node:16.14.2-alpine",
+    [
+      "sh",
+      "-c",
+      `echo "${code.replace('"', "'")}" > /index.js && node /index.js`,
+    ],
+    stdout
+  );
 
-export async function runJava(code: string) {}
+  return { stdout: Buffer.from(stdout.getData()).toString(), stderr: null };
+}
+
+export async function runJava(code: string) {
+  const stdout = new SimpleStream();
+
+  await docker.run(
+    "openjdk:19-jdk-slim",
+    [
+      "sh",
+      "-c",
+      `echo "${code.replace(
+        '"',
+        "'"
+      )}" > /index.java && javac /index.java && java/index.class`,
+    ],
+    stdout
+  );
+
+  return { stdout: Buffer.from(stdout.getData()).toString(), stderr: null };
+}
+
+export async function runRust(code: string) {
+  const stdout = new SimpleStream();
+
+  await docker.run(
+    "rust:1.61.0-slim",
+    [
+      "sh",
+      "-c",
+      `echo "${code.replace(
+        '"',
+        "'"
+      )}" > /index.rs && rustc /index.rs && chmod +x /index && /index`,
+    ],
+    stdout
+  );
+
+  return { stdout: Buffer.from(stdout.getData()).toString(), stderr: null };
+}
+
+export async function runPython(code: string) {
+  const stdout = new SimpleStream();
+
+  await docker.run(
+    "python:3.9.13-slim",
+    [
+      "sh",
+      "-c",
+      `echo "${code.replace('"', "'")}" > /index.py && python /index.py`,
+    ],
+    stdout
+  );
+
+  return { stdout: Buffer.from(stdout.getData()).toString(), stderr: null };
+}
