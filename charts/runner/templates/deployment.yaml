@@ -32,10 +32,15 @@ spec:
           env:
             - name: FASTIFY_ADDRESS
               value: "0.0.0.0"
+            - name: PORT
+              value: "80"
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
           ports:
             - name: http
               containerPort: 80
@@ -44,12 +49,18 @@ spec:
             httpGet:
               path: /
               port: http
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /
               port: http
+            failureThreshold: 3
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
