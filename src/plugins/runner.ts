@@ -34,7 +34,7 @@ export default fp<RunnerPluginOptions>(async (fastify, opts) => {
         [
           "sh",
           "-c",
-          `echo "${code.replace('"', "'")}" > /index.js && node /index.js`,
+          `echo "${code.replaceAll('"', '\\"')}" > /index.js && node /index.js`,
         ],
         stdout
       );
@@ -50,9 +50,9 @@ export default fp<RunnerPluginOptions>(async (fastify, opts) => {
         [
           "sh",
           "-c",
-          `echo "${code.replace(
+          `echo "${code.replaceAll(
             '"',
-            "'"
+            '\\"'
           )}" > /index.java && javac /index.java && java/index.class`,
         ],
         stdout
@@ -69,9 +69,9 @@ export default fp<RunnerPluginOptions>(async (fastify, opts) => {
         [
           "sh",
           "-c",
-          `echo "${code.replace(
+          `echo "${code.replaceAll(
             '"',
-            "'"
+            '\\"'
           )}" > /index.rs && rustc /index.rs && chmod +x /index && /index`,
         ],
         stdout
@@ -88,7 +88,10 @@ export default fp<RunnerPluginOptions>(async (fastify, opts) => {
         [
           "sh",
           "-c",
-          `echo "${code.replace('"', "'")}" > /index.py && python /index.py`,
+          `echo "${code.replaceAll(
+            '"',
+            '\\"'
+          )}" > /index.py && python /index.py`,
         ],
         stdout
       );
